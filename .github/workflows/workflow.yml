@@ -1,0 +1,29 @@
+name: Build Docker Image and Push to ACR
+on: [push]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout master"
+        uses: actions/checkout@v2
+      - name: "Sign in to Azure"
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: "Docker login"
+        uses: azure/docker-login@v1
+        with:
+          login-server: acrse4453final.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: "Build & Push to ACR"
+        run: |
+          docker build . -t acrse4453final.azurecr.io/se4453final-rg:${{ github.sha }}
+          docker push acrse4453final.azurecr.io/se4453final-rg:${{ github.sha }}
+      - name: "Deploy from ACR to App Service"
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: "se4453-final-app"
+          images: "acrse4453final.azurecr.io/se4453final-rg:${{ github.sha }}"
+      - name: "Logout from Azure"
+        run: az logout
